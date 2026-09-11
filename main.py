@@ -8,16 +8,20 @@ import plotly.express as px
 # ============================================================
 
 st.set_page_config(
-    page_title="영화 데이터 그래프 도감 1 - 시간",
+    page_title="2026 Korea Movie Data",
     page_icon="🎬",
     layout="wide"
 )
 
-st.title("🎬 영화 데이터 그래프 도감 1 - 시간")
+st.title("🎬 2026 한국 영화 데이터 그래프")
+
+st.subheader(
+    "The Most Popular Movies in Korea — 2026"
+)
 
 st.write(
-    "2026년 영화들의 날짜별 일관객 변화를 "
-    "인터랙티브 그래프로 확인합니다."
+    "2026년 한국 박스오피스에서 가장 많은 관객을 기록한 "
+    "영화들의 일별 관객수, 누적관객수와 순위 변화를 분석합니다."
 )
 
 
@@ -34,17 +38,16 @@ DATA_URL = (
 @st.cache_data
 def load_data():
 
-    # CSV 파일을 인터넷에서 불러옵니다.
     df = pd.read_csv(DATA_URL)
 
-    # 날짜를 실제 날짜 형식으로 변환합니다.
+    # 날짜 변환
     df["날짜"] = pd.to_datetime(
         df["날짜"].astype(str),
         format="%Y%m%d",
         errors="coerce"
     )
 
-    # 숫자 데이터를 숫자형으로 변환합니다.
+    # 숫자 데이터 변환
     number_columns = [
         "순위",
         "일관객",
@@ -54,19 +57,17 @@ def load_data():
     ]
 
     for column in number_columns:
+
         df[column] = pd.to_numeric(
             df[column],
             errors="coerce"
         )
 
-    # 날짜순으로 정렬합니다.
-    df = df.sort_values("날짜")
-
     return df
 
 
 # ============================================================
-# 3. ДАННЫЕ ЗАГРУЗКА
+# 3. ЗАГРУЗКА
 # ============================================================
 
 try:
@@ -75,25 +76,17 @@ try:
 
 except Exception as e:
 
-    st.error("데이터를 불러오지 못했습니다.")
-
-    st.write(
-        "인터넷 연결 또는 데이터 주소를 확인해 주세요."
+    st.error(
+        "영화 데이터를 불러오지 못했습니다."
     )
 
-    st.stop()
-
-
-# 데이터가 없는 경우
-if df.empty:
-
-    st.warning("데이터가 없습니다.")
+    st.code(str(e))
 
     st.stop()
 
 
 # ============================================================
-# 4. 2026년 데이터만 사용
+# 4. 2026 ДАННЫЕ
 # ============================================================
 
 df_2026 = df[
@@ -103,7 +96,7 @@ df_2026 = df[
 
 if df_2026.empty:
 
-    st.warning(
+    st.error(
         "2026년 데이터가 없습니다."
     )
 
@@ -111,59 +104,84 @@ if df_2026.empty:
 
 
 # ============================================================
-# 5. 그래프 제목
+# 5. САМЫЕ ПОПУЛЯРНЫЕ ФИЛЬМЫ
+# ============================================================
+
+popular_movies = [
+    "왕과 사는 남자",
+    "오디세이",
+    "스파이더맨: 브랜드 뉴 데이",
+    "군체",
+    "호프"
+]
+
+
+# ============================================================
+# 6. ПРОВЕРЯЕМ, КАКИЕ ФИЛЬМЫ ЕСТЬ В CSV
+# ============================================================
+
+available_movies = []
+
+for movie in popular_movies:
+
+    if movie in df_2026["영화명"].unique():
+
+        available_movies.append(movie)
+
+
+# ============================================================
+# 7. ЕСЛИ НЕКОТОРЫХ НЕТ — ПОКАЗЫВАЕМ СООБЩЕНИЕ
+# ============================================================
+
+missing_movies = [
+    movie
+    for movie in popular_movies
+    if movie not in available_movies
+]
+
+
+if missing_movies:
+
+    st.warning(
+        "일부 영화의 제목이 데이터에서 발견되지 않았습니다."
+    )
+
+    st.write(
+        "찾지 못한 영화:",
+        missing_movies
+    )
+
+
+if len(available_movies) == 0:
+
+    st.error(
+        "선택한 인기 영화가 데이터에 없습니다."
+    )
+
+    st.stop()
+
+
+# ============================================================
+# 8. ВЫБОР ФИЛЬМОВ
 # ============================================================
 
 st.divider()
 
-st.header("📈 그래프 1 — 2026년 영화별 일관객 변화")
-
-st.write(
-    "여러 영화를 선택하면 같은 그래프에서 "
-    "시간에 따른 관객수 변화를 비교할 수 있습니다."
+st.header(
+    "🎬 인기 영화 선택"
 )
 
-
-# ============================================================
-# 6. 영화 선택
-# ============================================================
-
-movie_list = sorted(
-    df_2026["영화명"]
-    .dropna()
-    .unique()
-    .tolist()
-)
-
-
-# 2026년에 존재하는 영화 이름 확인
-default_movies = []
-
-for movie in [
-    "오디세이",
-    "스파이더맨: 브랜드 뉴 데이"
-]:
-
-    if movie in movie_list:
-        default_movies.append(movie)
-
-
-# 영화 선택
 selected_movies = st.multiselect(
-    "비교할 영화를 선택하세요.",
-    options=movie_list,
-    default=default_movies
+    "그래프에 표시할 영화를 선택하세요.",
+    options=available_movies,
+    default=available_movies
 )
 
-
-# ============================================================
-# 7. 선택된 영화 데이터
-# ============================================================
 
 if len(selected_movies) == 0:
 
     st.info(
-        "위에서 영화를 한 편 이상 선택해 주세요."
+        "영화를 한 편 이상 선택하세요."
     )
 
     st.stop()
@@ -174,125 +192,320 @@ selected_df = df_2026[
 ].copy()
 
 
-# 날짜순 정렬
 selected_df = selected_df.sort_values(
     ["날짜", "영화명"]
 )
 
 
 # ============================================================
-# 8. LINE GRAPH
+# 9. ГРАФИК 1 — ЕЖЕДНЕВНАЯ ПОСЕЩАЕМОСТЬ
 # ============================================================
 
-fig = px.line(
+st.divider()
+
+st.header(
+    "📈 그래프 1 — 일별 관객수"
+)
+
+st.write(
+    "각 영화가 날짜별로 몇 명의 관객을 모았는지 보여줍니다."
+)
+
+
+fig1 = px.line(
     selected_df,
     x="날짜",
     y="일관객",
     color="영화명",
     markers=True,
-    title="2026년 날짜별 일관객 변화",
+    title="Daily Audience — 2026",
     labels={
         "날짜": "날짜",
-        "일관객": "일관객수",
+        "일관객": "일 관객수",
         "영화명": "영화"
     }
 )
 
 
-# ★ 중요:
-# 점만 보이는 것이 아니라 선으로 연결합니다.
-fig.update_traces(
+fig1.update_traces(
     mode="lines+markers",
-    connectgaps=True,
     hovertemplate=(
         "영화: %{fullData.name}<br>"
         "날짜: %{x|%Y-%m-%d}<br>"
-        "관객수: %{y:,}명"
+        "일 관객수: %{y:,}명"
         "<extra></extra>"
     )
 )
 
 
-fig.update_layout(
-
+fig1.update_layout(
     height=650,
-
     hovermode="x unified",
-
     xaxis=dict(
-        title="날짜",
-        type="date"
+        title="날짜"
     ),
-
     yaxis=dict(
-        title="일관객수",
+        title="일 관객수",
         tickformat=","
-    ),
-
-    legend=dict(
-        title="영화"
     )
 )
 
 
-# 그래프 표시
 st.plotly_chart(
-    fig,
+    fig1,
     use_container_width=True
 )
 
 
 # ============================================================
-# 9. 그래프에서 알 수 있는 것
+# 10. ЧТО МОЖНО УЗНАТЬ
 # ============================================================
 
-st.subheader("💡 이 그래프로 알 수 있는 것")
+st.subheader(
+    "💡 이 그래프로 알 수 있는 것"
+)
 
 st.text_area(
     "직접 설명을 작성하세요.",
-    value="",
     placeholder=(
-        "예: 영화의 개봉 직후 관객수가 가장 높고 "
-        "시간이 지나면서 감소하는 경향을 보인다."
+        "예: 영화의 개봉 직후 관객수가 급격히 증가한 후 "
+        "시간이 지나면서 감소하는 모습을 볼 수 있다."
     ),
-    height=120
+    height=110
 )
 
 
 # ============================================================
-# 10. 데이터 정보
+# 11. ГРАФИК 2 — НАКОПИТЕЛЬНАЯ ПОСЕЩАЕМОСТЬ
 # ============================================================
 
 st.divider()
 
-st.subheader("📊 현재 그래프의 데이터")
+st.header(
+    "📊 그래프 2 — 누적 관객수"
+)
 
-col1, col2, col3 = st.columns(3)
+st.write(
+    "각 영화의 누적 관객수가 시간에 따라 "
+    "어떻게 증가했는지 보여줍니다."
+)
 
-with col1:
-    st.metric(
-        "데이터 시작일",
-        df_2026["날짜"].min().strftime("%Y-%m-%d")
+
+fig2 = px.line(
+    selected_df,
+    x="날짜",
+    y="누적관객",
+    color="영화명",
+    markers=True,
+    title="Cumulative Audience — 2026",
+    labels={
+        "날짜": "날짜",
+        "누적관객": "누적 관객수",
+        "영화명": "영화"
+    }
+)
+
+
+fig2.update_traces(
+    mode="lines+markers",
+    hovertemplate=(
+        "영화: %{fullData.name}<br>"
+        "날짜: %{x|%Y-%m-%d}<br>"
+        "누적 관객수: %{y:,}명"
+        "<extra></extra>"
     )
+)
 
-with col2:
-    st.metric(
-        "데이터 마지막 날짜",
-        df_2026["날짜"].max().strftime("%Y-%m-%d")
-    )
 
-with col3:
-    st.metric(
-        "영화 종류",
-        f"{df_2026['영화명'].nunique():,}편"
+fig2.update_layout(
+    height=650,
+    hovermode="x unified",
+    xaxis=dict(
+        title="날짜"
+    ),
+    yaxis=dict(
+        title="누적 관객수",
+        tickformat=","
     )
+)
+
+
+st.plotly_chart(
+    fig2,
+    use_container_width=True
+)
 
 
 # ============================================================
-# 11. 원본 데이터
+# 12. ЧТО МОЖНО УЗНАТЬ
 # ============================================================
 
-with st.expander("📋 원본 데이터 보기"):
+st.subheader(
+    "💡 이 그래프로 알 수 있는 것"
+)
+
+st.text_area(
+    "직접 설명을 작성하세요.",
+    placeholder=(
+        "예: 누적 관객수가 가장 빠르게 증가한 영화가 "
+        "가장 강한 흥행을 기록한 영화라고 볼 수 있다."
+    ),
+    height=110
+)
+
+
+# ============================================================
+# 13. ГРАФИК 3 — РЕЙТИНГ
+# ============================================================
+
+st.divider()
+
+st.header(
+    "🏆 그래프 3 — 일별 박스오피스 순위"
+)
+
+st.write(
+    "각 영화의 일별 박스오피스 순위가 "
+    "시간에 따라 어떻게 변했는지 보여줍니다."
+)
+
+
+fig3 = px.line(
+    selected_df,
+    x="날짜",
+    y="순위",
+    color="영화명",
+    markers=True,
+    title="Daily Box Office Ranking — 2026",
+    labels={
+        "날짜": "날짜",
+        "순위": "박스오피스 순위",
+        "영화명": "영화"
+    }
+)
+
+
+fig3.update_traces(
+    mode="lines+markers",
+    hovertemplate=(
+        "영화: %{fullData.name}<br>"
+        "날짜: %{x|%Y-%m-%d}<br>"
+        "순위: %{y}위"
+        "<extra></extra>"
+    )
+)
+
+
+# Рейтинг: 1 место должно быть сверху
+fig3.update_yaxes(
+    autorange="reversed",
+    dtick=1
+)
+
+
+fig3.update_layout(
+    height=650,
+    hovermode="x unified",
+    xaxis=dict(
+        title="날짜"
+    ),
+    yaxis=dict(
+        title="박스오피스 순위"
+    )
+)
+
+
+st.plotly_chart(
+    fig3,
+    use_container_width=True
+)
+
+
+# ============================================================
+# 14. ОБЩИЙ АНАЛИЗ
+# ============================================================
+
+st.divider()
+
+st.header(
+    "🧠 종합 분석"
+)
+
+st.write(
+    "세 그래프를 비교하여 영화의 흥행 과정을 분석해 보세요."
+)
+
+
+st.text_area(
+    "직접 분석을 작성하세요.",
+    placeholder=(
+        "예: 일 관객수와 누적 관객수 그래프를 비교하면 "
+        "개봉 초기 흥행이 강했던 영화를 확인할 수 있다. "
+        "또한 순위 그래프를 통해 영화의 흥행 순위가 "
+        "시간에 따라 어떻게 변화했는지 알 수 있다."
+    ),
+    height=160
+)
+
+
+# ============================================================
+# 15. ФИНАЛЬНЫЕ ПОКАЗАТЕЛИ
+# ============================================================
+
+st.divider()
+
+st.header(
+    "📊 현재 선택된 영화 데이터"
+)
+
+
+for movie in selected_movies:
+
+    movie_df = selected_df[
+        selected_df["영화명"] == movie
+    ].copy()
+
+    if movie_df.empty:
+        continue
+
+    max_cumulative = movie_df[
+        "누적관객"
+    ].max()
+
+    best_rank = movie_df[
+        "순위"
+    ].min()
+
+    st.write(
+        f"### 🎬 {movie}"
+    )
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+
+        st.metric(
+            "최대 누적 관객수",
+            f"{max_cumulative:,.0f}명"
+        )
+
+    with col2:
+
+        st.metric(
+            "최고 순위",
+            f"{int(best_rank)}위"
+        )
+
+
+# ============================================================
+# 16. ИСХОДНЫЕ ДАННЫЕ
+# ============================================================
+
+st.divider()
+
+with st.expander(
+    "📋 원본 데이터 보기"
+):
 
     st.dataframe(
         selected_df,
@@ -301,13 +514,29 @@ with st.expander("📋 원본 데이터 보기"):
 
 
 # ============================================================
-# 12. 다음 그래프 추가 공간
+# 17. ИСТОЧНИК
 # ============================================================
 
 st.divider()
 
-st.header("📊 그래프 2")
+st.subheader(
+    "📚 데이터 출처"
+)
 
-st.info(
-    "다음 그래프를 여기에 추가할 수 있습니다."
+st.write(
+    "KOBIS / KOBIZ — Korean Box Office Information System"
+)
+
+st.write(
+    "분석 대상: 2026년 인기 영화"
+)
+
+st.write(
+    "영화: 왕과 사는 남자, 오디세이, "
+    "스파이더맨: 브랜드 뉴 데이, 군체, 호프"
+)
+
+
+st.success(
+    "2026년 인기 영화 3개 그래프 분석이 완료되었습니다! 🎬"
 )
