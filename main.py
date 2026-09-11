@@ -209,4 +209,3 @@ with st.expander("📋 원본 데이터 일부 보기"):
         df.head(20),
         use_container_width=True
     )
-```
