@@ -420,6 +420,110 @@ st.plotly_chart(
     use_container_width=True
 )
 
+# ============================================================
+# 13. 그래프 4 — TOP 10 영화
+# ============================================================
+
+st.divider()
+
+st.header(
+    "🏆 그래프 4 — 기간별 관객수 TOP 10"
+)
+
+st.write(
+    "선택한 기간 동안 각 영화의 일관객을 모두 합산하여 "
+    "관객수가 가장 많은 영화 TOP 10을 보여줍니다."
+)
+
+
+# 영화별 총 관객수 계산
+top10_movies = (
+    df_2026
+    .groupby("영화명")
+    .agg(
+        총관객수=("일관객", "sum"),
+        TOP10_진입일수=("날짜", "nunique")
+    )
+    .reset_index()
+)
+
+
+# 총 관객수가 많은 순서로 정렬
+top10_movies = (
+    top10_movies
+    .sort_values(
+        "총관객수",
+        ascending=False
+    )
+    .head(10)
+)
+
+
+# 그래프용 데이터는 관객수가 많은 영화가 위에 오도록
+top10_movies = top10_movies.sort_values(
+    "총관객수",
+    ascending=True
+)
+
+
+fig4 = px.bar(
+    top10_movies,
+    x="총관객수",
+    y="영화명",
+    orientation="h",
+    text="총관객수",
+    title="선택한 기간 영화별 누적 일관객 TOP 10",
+    labels={
+        "총관객수": "기간 내 총 관객수",
+        "영화명": "영화"
+    }
+)
+
+
+fig4.update_traces(
+    hovertemplate=(
+        "영화: %{y}<br>"
+        "기간 내 총 관객수: %{x:,}명<br>"
+        "TOP 10 진입일수: %{customdata}일"
+        "<extra></extra>"
+    ),
+    customdata=top10_movies[
+        ["TOP10_진입일수"]
+    ]
+)
+
+
+fig4.update_layout(
+    height=650,
+    xaxis=dict(
+        title="기간 내 총 관객수",
+        tickformat=","
+    ),
+    yaxis=dict(
+        title="영화",
+        categoryorder="total ascending"
+    )
+)
+
+
+st.plotly_chart(
+    fig4,
+    use_container_width=True
+)
+
+
+st.subheader(
+    "💡 이 그래프로 알 수 있는 것"
+)
+
+st.text_area(
+    "직접 설명을 작성하세요.",
+    placeholder=(
+        "예: 선택한 기간 동안 일관객의 합이 가장 높은 영화와 "
+        "10위권에 오래 머문 영화를 확인할 수 있다."
+    ),
+    height=110
+)
 
 # ============================================================
 # 14. ОБЩИЙ АНАЛИЗ
